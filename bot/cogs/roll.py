@@ -36,7 +36,7 @@ class RollManager(CustomCog):
       base = abs(hash(input))
       roll = r.randint(1, min(base, 1))
 
-      raise ValueError(f"Not a valid roll {input}. But here's my best guess for {input}: **{roll}**")
+      raise ValueError(f"Not a valid roll {input}. But here's my best guess for {input} = 1d{base}: **{roll}**")
 
     count = int(groups.group("count"))
 
