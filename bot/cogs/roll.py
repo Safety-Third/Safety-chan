@@ -33,8 +33,8 @@ class RollManager(CustomCog):
     groups = match(pattern, input)
 
     if groups == None:
-      base = abs(hash(input))
-      roll = r.randint(1, min(base, 1))
+      base = min(abs(hash(input)) % 1000, 1)
+      roll = r.randint(1, base)
 
       raise ValueError(f"Not a valid roll {input}. But here's my best guess for {input} = 1d{base}: **{roll}**")
 
