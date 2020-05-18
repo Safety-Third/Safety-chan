@@ -1,5 +1,6 @@
 from discord import Member, Message, Reaction, Role, TextChannel, User
 from discord.ext.commands import Bot, CommandInvokeError, DefaultHelpCommand, Context, Converter, Greedy
+from emoji import get_emoji_regexp
 from re import compile, findall, UNICODE
 from typing import Union
 
@@ -21,11 +22,7 @@ bot.add_cog(StatusManager(bot))
 
 discord_emojis = r'<a?:[a-zA-Z0-9\_]+:[0-9]+>'
 
-unicode_emojis = compile(u'['
-    u'\U0001F300-\U0001F64F'
-    u'\U0001F680-\U0001F6FF'
-    u'\u2600-\u26FF\u2700-\u27BF]+', 
-    UNICODE)
+unicode_emojis = get_emoji_regexp()
 
 @bot.event
 async def on_message(message: Message):
@@ -40,13 +37,12 @@ async def on_message(message: Message):
 
     if user_reacts.get("consent") == "1":
       unicode_emoji_list = findall(unicode_emojis, message.content)
-      
-      for emoji_string in unicode_emoji_list:
-        for emoji in emoji_string:
-          if emoji in user_reacts:
-            user_reacts[emoji] = int(user_reacts[emoji]) + 1
-          else: 
-            user_reacts[emoji] = 1
+
+      for emoji in unicode_emoji_list:
+        if emoji in user_reacts:
+          user_reacts[emoji] = int(user_reacts[emoji]) + 1
+        else: 
+          user_reacts[emoji] = 1
 
       discord_emoji_list = findall(discord_emojis, message.content)
 
