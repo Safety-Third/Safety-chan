@@ -111,7 +111,9 @@ async def poll_result(author_id: str, channel_id: int, msg_id: int, topic: str):
   for reaction in msg.reactions:
     try:
       index = emojis_order.index(reaction.emoji)
-      results.append((reaction.count - 1, options[index]))
+
+      if index < len(options):
+        results.append((reaction.count - 1, options[index]))
     except ValueError:
       pass
 

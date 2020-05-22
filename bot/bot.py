@@ -1,6 +1,8 @@
+from datetime import datetime
 from discord import Member, Message, Reaction, Role, TextChannel, User
 from discord.ext.commands import Bot, CommandInvokeError, DefaultHelpCommand, Context, Converter, Greedy
 from emoji import get_emoji_regexp
+from os import environ
 from re import compile, findall, UNICODE
 from typing import Union
 
@@ -23,6 +25,14 @@ bot.add_cog(StatusManager(bot))
 discord_emojis = r'<a?:[a-zA-Z0-9\_]+:[0-9]+>'
 
 unicode_emojis = get_emoji_regexp()
+
+@bot.event
+async def on_ready():
+  admin_id = environ.get("SAFETY_ADMIN_ID")
+
+  if admin_id:
+    admin = await bot.fetch_user(int(admin_id))
+    await admin.send(f"I started up at {str(datetime.now())}")
 
 @bot.event
 async def on_message(message: Message):
