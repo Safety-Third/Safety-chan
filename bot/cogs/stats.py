@@ -1,6 +1,6 @@
 from discord import Guild, Member, TextChannel, User
 from discord.ext.commands import Bot, Context, command, CommandInvokeError, guild_only
-from typing import Callable, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from .base import CustomCog
 from ..util import redis
@@ -154,17 +154,22 @@ class StatsManager(CustomCog):
     await self.handle_message(ctx, idOrName, handler)
 
   @command()
-  async def stats(self, ctx: Context, idOrName: GuildIdOrNumber = None):
+  async def stats(self, ctx: Context, maxEmojis = 10, idOrName: GuildIdOrNumber = None):
     """
     Get stats of your emoji usage in a guild. These stats are DMed
 
+    By default, will send you the top 10 emojis (potentially more if many are tied).
+    You can change the number of emojis by providing a number as your first argument
+
     This can be called in a server to get stats for that server, 
-    or you can provide a server ID/name via a DM.
+    or you can provide a server ID/name via a DM. 
+    You have to provide an emoji count in this case.
 
     Examples:
-    >stats 000000000000000000  (revoke using server id)
-    >stats "test server"       (revoke using server name)
-    >stats                     (revoke in server text channel)
+    >stats                        (stats in server text channel)
+    >stats 1000                   (show the top 1000 emojis)
+    >stats 10 000000000000000000  (show top 10 emojis using server id)
+    >stats 10 "test server"       (show top 10 emojis using server name)
     """   
     def handler(key: str):
       react_stats = redis.hgetall(key)
@@ -172,9 +177,35 @@ class StatsManager(CustomCog):
       if len(react_stats) > 1:
         message = ">>> "
 
+        score_mappings: Dict[int, List[str]] = {}
+
         for [emoji, count] in react_stats.items():
           if emoji != "consent":
-            message += f"{emoji}: {count} time(s)\n"
+            int_score = int(count)
+
+            if int_score in score_mappings:
+              score_mappings[int_score].append(emoji)
+            else:
+              score_mappings[int_score] = [emoji]
+
+        emoji_count = 0
+
+        for count in sorted(score_mappings, reverse=True):
+          emojis = score_mappings[count]
+
+          if count == 1:
+            message += "1 use: "
+          else:
+            message += f"{count} uses: "
+
+          message += " ".join(emojis) + "\n"
+
+          emoji_count += len(emojis)
+
+          if emoji_count >= maxEmojis:
+            break
+
+        return message
       else:
         message = "You have used no emojis"
 
