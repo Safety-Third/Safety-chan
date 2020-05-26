@@ -212,3 +212,49 @@ class StatsManager(CustomCog):
       return message
 
     await self.handle_message(ctx, idOrName, handler)
+  
+  @command()
+  async def uses(self, ctx: Context, *emojis):
+    """
+    Get stats of your specific emojis in a guild.
+
+    You can provide a list of emojis you want to see.
+    If you want to specify which server to use, provide the server id or name
+    as the last argument.
+
+    Examples:
+    >uses :three:                       (number of uses of three)
+    >uses :three: :four: :five:         (number of uses of three, four, and five)
+    >uses :three: :four: "test server"  (number of uses of three and four in "test server")
+    >uses :three: 000000000000000000    (number of uses of three in server with id of all zeroes)
+    """   
+    if len(emojis) == 0:
+      raise ValueError("You must provide at least one emoji")
+
+    idOrName: Optional[GuildIdOrNumber] = None
+
+    if self.get_guild_key(emojis[-1], ctx):
+      idOrName = emojis[-1]
+      emojis = emojis[:-1]
+
+    def handler(key: str):
+      react_stats = redis.hgetall(key)
+      
+      if len(react_stats) > 1:
+        message = ">>> "
+
+        for emoji in emojis:
+          count = react_stats.get(emoji, 0)
+          message += f"{emoji}: {count} use"
+
+          if count != 1:
+            message += "s"
+          message += "\n"
+
+        return message
+      else:
+        message = "You have used no emojis"
+
+      return message
+
+    await self.handle_message(ctx, idOrName, handler)
