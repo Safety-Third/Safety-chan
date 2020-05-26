@@ -93,7 +93,7 @@ class RollManager(CustomCog):
     return ', '.join(str(x) for x in list)
 
   @commands.command()
-  async def roll(self, ctx, *args):
+  async def roll(self, ctx, *die_rolls):
     """
     Rolls one or more dice. Dice rolls should be in this general form:
     
@@ -125,7 +125,7 @@ class RollManager(CustomCog):
 
     total_sum = 0
 
-    for entry in args:
+    for entry in die_rolls:
       [roll, display_result, actual_result, addition] = self.make_roll(entry)
 
       result_sum = sum(actual_result) + addition

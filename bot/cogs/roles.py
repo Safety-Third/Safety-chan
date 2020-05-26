@@ -1,7 +1,9 @@
 from discord import Member, Role
 from discord.ext import commands
-from discord.ext.commands import Cog, CommandInvokeError, Context, Greedy
+from discord.ext.commands import CommandInvokeError, Context, Greedy
 from typing import Set
+
+from .base import CustomCog
 
 __all__ = ["RolesManager"]
 
@@ -25,7 +27,7 @@ def pluralize(person: Member, roles: commands.Greedy[Role]) -> str:
 
   return f"{message} for {person}: {roleIds}"
 
-class RolesManager(Cog):
+class RolesManager(CustomCog):
   """
   Shortcut for managing user roles
   """
@@ -39,7 +41,7 @@ class RolesManager(Cog):
     if isinstance(error.original, NoRolesError):
       await error.original.handle_error(ctx)
     else:
-      await ctx.send(error.args)
+      await super().cog_command_error(ctx, error)
 
   @commands.has_permissions(administrator=True)
   @commands.command()

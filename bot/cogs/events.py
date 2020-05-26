@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from dateutil.tz import tzlocal
 from discord.channel import TextChannel
 from discord.ext import commands
-from discord.ext.commands import Bot, Context
+from discord.ext.commands import Bot, Context, guild_only
 from textwrap import dedent
 from typing import List
 
@@ -35,6 +35,7 @@ class EventsManager(CustomCog):
   def __init__(self, bot: Bot):
     self.bot = bot
 
+  @guild_only()
   @commands.command()
   async def schedule(self, ctx: Context, event: str, time: str):
     """
@@ -79,7 +80,7 @@ class EventsManager(CustomCog):
     await ctx.send(msg)
 
   @commands.command()
-  async def signup(self, ctx: Context, jobid: str):
+  async def signup(self, ctx: Context, event_id: str):
     """
     Signup for a scheduled event using an event ID.
     You must be able to see the channel to sign up for the event.
@@ -88,7 +89,7 @@ class EventsManager(CustomCog):
     >signup 00000000000000000000000000000000
 
     Args:
-      jobid (str): the hex id made when creating an event
+      event_id (str): the hex id made when creating an event
     """
     added = False
     author = ""
@@ -96,16 +97,16 @@ class EventsManager(CustomCog):
     event = ""
     time = ""
 
-    with redlocks.create_lock(jobid):
-      job = scheduler.get_job(jobid)
+    with redlocks.create_lock(event_id):
+      job = scheduler.get_job(event_id)
 
       if job is None:
-        raise ValueError(f"The job {jobid} does not exist")
+        raise ValueError(f"The job {event_id} does not exist")
 
       channel = self.bot.get_channel(job.args[0])
 
       if channel is None or not ctx.message.author in channel.members:
-        raise ValueError(f"The job {jobid} does not exist")
+        raise ValueError(f"The job {event_id} does not exist")
 
       new_member = ctx.message.author.mention
       author = job.args[3][0]
@@ -124,7 +125,7 @@ class EventsManager(CustomCog):
       await ctx.message.author.send(f"You have already signed up for {event} at {time} by {author}")
 
   @commands.command()
-  async def cancel(self, ctx: Context, jobid: str):
+  async def cancel(self, ctx: Context, event_id: str):
     """
     Cancels an event that you have scheduled.
     You must be the creator of an event to cancel it.
@@ -133,27 +134,27 @@ class EventsManager(CustomCog):
     >cancel 00000000000000000000000000000000
 
     Args:
-      jobid (str): the id of the job you would like to cancel
+      event_id (str): the id of the job you would like to cancel
     """
     args      = []
     author    = ctx.message.author.mention
     error_msg = ""
 
-    with redlocks.create_lock(jobid):
-      job = scheduler.get_job(jobid)
+    with redlocks.create_lock(event_id):
+      job = scheduler.get_job(event_id)
 
       if job:
         args = job.args
 
         if args[3][0] == author:
           try:
-            scheduler.remove_job(jobid)
+            scheduler.remove_job(event_id)
           except:
             error_msg = "An error occurred when trying to cancel your job"
         else:
-          error_msg = f"Could not find a job {jobid}. Make sure you provided the correct id and are the creator of this job"
+          error_msg = f"Could not find a job {event_id}. Make sure you provided the correct id and are the creator of this job"
       else:
-        error_msg = f"Could not find a job {jobid}. Make sure you provided the correct id and are the creator of this job"
+        error_msg = f"Could not find a job {event_id}. Make sure you provided the correct id and are the creator of this job"
 
     if error_msg:
       await ctx.send(error_msg)

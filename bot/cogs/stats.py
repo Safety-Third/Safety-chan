@@ -1,6 +1,6 @@
 from discord import Guild, Member, TextChannel, User
-from discord.ext.commands import Bot, Context, check_any, command, \
-CommandInvokeError, guild_only, has_permissions, is_owner
+from discord.ext.commands import Bot, Context, command, \
+CommandError, CommandInvokeError, guild_only, has_permissions
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 from .base import CustomCog
@@ -106,7 +106,8 @@ class StatsManager(CustomCog):
     await ctx.author.send(f"{message} in {guildName}")
 
   @command()
-  async def categories(self, ctx: Context, max_per_category = 5, idOrName: GuildIdOrNumber = None):
+  async def categories(self, ctx: Context, max_per_category = 5, \
+                       serverIdOrName: GuildIdOrNumber = None):
     """
     Get stats of your emoji usage in a guild, by category. These stats are DMed.
 
@@ -189,10 +190,10 @@ class StatsManager(CustomCog):
 
       return message
 
-    await self.handle_message(ctx, idOrName, handler)
+    await self.handle_message(ctx, serverIdOrName, handler)
 
   @command()
-  async def consent(self, ctx: Context, idOrName: GuildIdOrNumber = None):
+  async def consent(self, ctx: Context, serverIdOrName: GuildIdOrNumber = None):
     """
     Consent to have this bot record stats of your emoji usage. These start are NOT anonymous
 
@@ -209,10 +210,10 @@ class StatsManager(CustomCog):
 
       return "You have consented to record stats of your reactions"
       
-    await self.handle_message(ctx, idOrName, handler)
+    await self.handle_message(ctx, serverIdOrName, handler)
   
   @command()
-  async def delete(self, ctx: Context, idOrName: GuildIdOrNumber = None):
+  async def delete(self, ctx: Context, serverIdOrName: GuildIdOrNumber = None):
     """
     Delete all emoji stats associated with a certain server.
 
@@ -229,10 +230,33 @@ class StatsManager(CustomCog):
 
       return "You deleted stats about your reactions"
       
-    await self.handle_message(ctx, idOrName, handler)
+    await self.handle_message(ctx, serverIdOrName, handler)
+
+  @has_permissions(manage_emojis=True)
+  @guild_only()
+  @command()
+  async def deleteCategory(self, ctx: Context, category: str):
+    """
+    Deletes a specific emoji
+    This function is server-only (no DMing).
+
+    Examples:
+    >deleteCategory joy                     (deletes the category "joy")
+    """
+    guild: Optional[Guild] = None
+
+    if isinstance(ctx.channel, TextChannel):
+      guild = ctx.channel.guild
+
+    if guild is None:
+      raise ValueError("This command can only be processed in a server")
+
+    redis.hdel(f"{guild.id}:categories", category)
+
+    await ctx.send(f"{ctx.author.mention} deleted category {category}")
 
   @command()
-  async def revoke(self, ctx: Context, idOrName: GuildIdOrNumber = None):
+  async def revoke(self, ctx: Context, serverIdOrName: GuildIdOrNumber = None):
     """
     Revoke your consent for continued recording of stats. Previous stats will remain
 
@@ -249,10 +273,10 @@ class StatsManager(CustomCog):
 
       return "You have revoked consent to record stats of your reactions"
       
-    await self.handle_message(ctx, idOrName, handler)
+    await self.handle_message(ctx, serverIdOrName, handler)
 
   @command()
-  async def stats(self, ctx: Context, maxEmojis = 10, idOrName: GuildIdOrNumber = None):
+  async def stats(self, ctx: Context, maxEmojis = 10, serverIdOrName: GuildIdOrNumber = None):
     """
     Get stats of your emoji usage in a guild. These stats are DMed
 
@@ -312,42 +336,32 @@ class StatsManager(CustomCog):
 
       return message
 
-    await self.handle_message(ctx, idOrName, handler)
+    await self.handle_message(ctx, serverIdOrName, handler)
   
-  @check_any(has_permissions(manage_emojis=True), is_owner())
+  @has_permissions(manage_emojis=True)
+  @guild_only()
   @command()
   async def setCategory(self, ctx: Context, category: str, *emojis):
     """
     Sets a list of emojis to a specific category.
     This category will be used to determine which "categories" are most used by a specific person.
     An emoji can only belong to a single category.
-
-    If you want to specify which server to use, provide the server id or name
-    as the last argument.
+    This function is server-only (no DMing).
 
     Examples:
     >setCategory joy :three:                      (sets the category 'joy' to be [3])
     >setCategory joy :three: :four: :five:        (sets the category 'joy' to be [3, 4, 5])
-    >setCategory joy :three: :four: "test server" (sets the category 'joy' in "test server" to [3])
-    >setCategory joy :three: 000000000000000000   (sets the category 'joy' in server with id
-                                                  000000000000000000  to [3])
     """
     if len(emojis) == 0:
       raise ValueError("You must provide at least one emoji")
 
     guildId = ""
 
-    guild = self.get_guild(emojis[-1])
-
-    if guild is None:
-      if isinstance(ctx.channel, TextChannel):
-        guildId = ctx.channel.guild.id
-      else:
-        raise ValueError(f"Could not find a server {emojis[-1]}. If you are DM-ing, make sure to provide the server name/id as the last argument")
+    if isinstance(ctx.channel, TextChannel):
+      guildId = ctx.channel.guild.id
     else:
-      guildId = guild.id
-      emojis = emojis[:-1]
-        
+      raise ValueError("This command can only be processed in a server")
+
     key = f"{guildId}:categories"
 
     with redlocks.create_lock(f"{key}:lock"):
@@ -412,7 +426,7 @@ class StatsManager(CustomCog):
     await self.handle_message(ctx, idOrName, handler)
 
   @command()
-  async def viewCategories(self, ctx: Context, idOrName: GuildIdOrNumber = None):
+  async def viewCategories(self, ctx: Context, serverIdOrName: GuildIdOrNumber = None):
     """
     View the emoji categories in a specific server.
 
@@ -426,14 +440,14 @@ class StatsManager(CustomCog):
     """
     guild: Optional[Guild] = None    
 
-    if idOrName:
-      guild = self.get_guild(idOrName)
+    if serverIdOrName:
+      guild = self.get_guild(serverIdOrName)
     else:
       if isinstance(ctx.channel, TextChannel):
         guild = ctx.channel.guild
 
     if guild is None:
-      raise ValueError(f"Could not find a server {idOrName}. If you are DM-ing, make sure to provide the server name/id as the last argument")
+      raise ValueError(f"Could not find a server {serverIdOrName}. If you are DM-ing, make sure to provide the server name/id as the last argument")
       
     categories = redis.hgetall(f"{guild.id}:categories")
 
