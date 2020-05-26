@@ -38,7 +38,11 @@ async def on_ready():
 async def on_message(message: Message):
   if message.content.startswith(">"):
     await bot.process_commands(message)
-  elif message.author.id == bot.user.id:
+
+    if message.content.startswith(">uses"):
+      return
+  
+  if message.author.id == bot.user.id:
     pass
   elif isinstance(message.author, Member) and isinstance(message.channel, TextChannel):
     key = f"{message.author.id}:{message.channel.guild.id}"
