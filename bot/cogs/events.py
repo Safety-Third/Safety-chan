@@ -13,7 +13,8 @@ import bot
 
 __all__ = ["EventsManager"]
 
-async def register_event(channel_id: int, event: str, time: str, members: List[str]=[]):
+async def register_event(channel_id: int, event: str, time: str, \
+                         author_id: str, members: List[str]=[]):
   """
   Notifies all members in the channel "channel_id" that the event "event" is about to happen.
   Also mentions all members who signed up.
@@ -22,6 +23,7 @@ async def register_event(channel_id: int, event: str, time: str, members: List[s
     channel_id (int): the id of the channel the event was created
     event (str): the name of the event
     time (str): a date string representing when the event should happen
+    author_id (str): the id of the creator of this event (if a failure occurs)
     members (List[str]): a list of people who have signed up for this event. The creator is first in the list
   """
   message = dedent(f"""
@@ -29,7 +31,15 @@ async def register_event(channel_id: int, event: str, time: str, members: List[s
   {" ".join(members)} 
   """)
   channel = bot.bot.get_channel(channel_id)
-  await channel.send(message)
+
+  if channel:
+    await channel.send(message)
+  else:
+    author = bot.bot.get_user(author_id)
+
+    if author:
+      error_msg = f"Failed to hold event {event}: the channel no longer exists"
+      await author.send(error_msg)
 
 class EventsManager(CustomCog):
   def __init__(self, bot: Bot):
@@ -69,7 +79,7 @@ class EventsManager(CustomCog):
     wait = (scheduled_date - now)
     
     job = scheduler.add_job(register_event, 'date', run_date=scheduled_date, args=[
-      ctx.channel.id, event, time, [ctx.message.author.mention]
+      ctx.channel.id, event, time, ctx.message.author.id, [ctx.message.author.mention]
     ])
     
     msg = dedent(f"""
