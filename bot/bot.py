@@ -28,6 +28,7 @@ unicode_emojis = get_emoji_regexp()
 
 @bot.event
 async def on_ready():
+  """Sends a notice of startup to the user with id SAFETY_ADMIN_ID"""
   admin_id = environ.get("SAFETY_ADMIN_ID")
 
   if admin_id:
@@ -36,6 +37,13 @@ async def on_ready():
 
 @bot.event
 async def on_message(message: Message):
+  """
+  Handles an incoming message. If the command starts with >, it is processed.
+  
+  In addition, this function handles updating emoji stats by seeing all emojis in the message
+  Emoji stats are only recorded if the message is sent in a server channel
+  AND the user has explicitly consented to stats in that server
+  """
   if message.content.startswith(">"):
     await bot.process_commands(message)
 
@@ -70,6 +78,12 @@ async def on_message(message: Message):
 
 @bot.event
 async def on_reaction_add(react: Reaction, user: Union[Member, User]):
+  """
+  Handles incrementing emoji stats when a reaction is added.
+
+  Emoji stats are only recorded if the message is sent in a server channel
+  AND the user has explicitly consented to stats in that server
+  """
   if isinstance(user, Member) and isinstance(react.message.channel, TextChannel):
     key = f"{user.id}:{react.message.channel.guild.id}"
     
@@ -85,6 +99,12 @@ async def on_reaction_add(react: Reaction, user: Union[Member, User]):
 
 @bot.event
 async def on_reaction_remove(react: Reaction, user: Union[Member, User]):
+  """
+  Handles decrementing emoji stats when a reaction is added.
+  
+  Emoji stats are only recorded if the message is sent in a server channel
+  AND the user has explicitly consented to stats in that server
+  """
   if isinstance(user, Member) and isinstance(react.message.channel, TextChannel):
     key = f"{user.id}:{react.message.channel.guild.id}"
     

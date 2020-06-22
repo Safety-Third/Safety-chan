@@ -14,6 +14,18 @@ class NoRolesError(Exception):
     await ctx.send(f"No valid roles provided. Here are some possible roles: {roles}")
 
 def remove_dupe_roles(roles: Greedy[Role]) -> Set[Role]:
+  """
+  Converts a collection of roles to a tuple, erroring on a size of zero
+
+  Args:
+    roles (Greedy[Role]): a collection of roles
+
+  Returns (Set[Role]):
+    a set of roles in "roles"
+
+  Raises:
+    NoRolesError: if there were no roles
+  """
   roles = set(roles)
 
   if len(roles) == 0:
@@ -21,7 +33,14 @@ def remove_dupe_roles(roles: Greedy[Role]) -> Set[Role]:
 
   return roles
 
-def pluralize(person: Member, roles: commands.Greedy[Role]) -> str:
+def roles_str(person: Member, roles: commands.Greedy[Role]) -> str:
+  """
+  Returns a message including the member's name and roles, pluralized as appropriate
+
+  Args:
+    person (Member): the member whose roles are being modified
+    roles (Greedy[Role]): the roles being modified for member
+  """
   message =  "role" if len(roles) == 1 else "roles"
   roleIds = [role.name for role in roles]
 
@@ -61,7 +80,7 @@ class RolesManager(CustomCog):
     roles = remove_dupe_roles(roles)
 
     await person.add_roles(*roles)
-    await ctx.send(f"Adding {pluralize(person, roles)}")
+    await ctx.send(f"Adding {roles_str(person, roles)}")
 
   @commands.has_permissions(administrator=True)
   @commands.command()
@@ -81,7 +100,7 @@ class RolesManager(CustomCog):
     roles = remove_dupe_roles(roles)
 
     await person.remove_roles(*roles)
-    await ctx.send(f"Removing {pluralize(person, roles)}")
+    await ctx.send(f"Removing {roles_str(person, roles)}")
 
   @commands.has_permissions(administrator=True)
   @commands.command()
@@ -101,4 +120,4 @@ class RolesManager(CustomCog):
     roles = remove_dupe_roles(roles)
 
     await person.edit(roles=roles)
-    await ctx.send(f"Setting {pluralize(person, roles)}")
+    await ctx.send(f"Setting {roles_str(person, roles)}")

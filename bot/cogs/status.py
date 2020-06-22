@@ -22,13 +22,16 @@ class StatusManager(Cog):
     """
     Change the "game" this bot is playing by pulling from a list from google docs
     """
-    games = sheets.spreadsheets() \
-      .values() \
-      .get(spreadsheetId=self.roles_doc, range="A2:A100") \
-      .execute() \
-      .get("values", [])
+    try:
+      games = sheets.spreadsheets() \
+        .values() \
+        .get(spreadsheetId=self.roles_doc, range="A2:A100") \
+        .execute() \
+        .get("values", [])
 
-    next_game = rand.choice(games)
-    game = Game(name=next_game[0])
-    await sleep(10)
-    await self.bot.change_presence(activity=game)
+      next_game = rand.choice(games)
+      game = Game(name=next_game[0])
+      await sleep(10)
+      await self.bot.change_presence(activity=game)
+    except Exception as e:
+      print(e)

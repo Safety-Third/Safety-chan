@@ -173,74 +173,77 @@ async def poll_result(author_id: str, channel_id: int, msg_id: int, topic: str):
     msg_id (str): the id of the message that started this poll
     topic (str): the topic of this poll
   """
-  channel = bot.bot.get_channel(channel_id)
+  try:
+    channel = bot.bot.get_channel(channel_id)
 
-  if channel is None:
-    await alert_author(author_id, topic)
-    return
+    if channel is None:
+      await alert_author(author_id, topic)
+      return
+      
+    msg = await channel.fetch_message(msg_id)
     
-  msg = await channel.fetch_message(msg_id)
-  
-  if msg is None:
-    await alert_author(author_id, topic, " because the message no longer exists")
-    return
-    
-  lines = msg.content.split("\n")
+    if msg is None:
+      await alert_author(author_id, topic, " because the message no longer exists")
+      return
+      
+    lines = msg.content.split("\n")
 
-  # remove the leading numbers (1., 10.)
-  options = [
-    line[line.index(".") + 2:] for line in lines[2:]
-  ]
+    # remove the leading numbers (1., 10.)
+    options = [
+      line[line.index(".") + 2:] for line in lines[2:]
+    ]
 
-  results: List[Tuple[int, str]] = []
-  others: List[Tuple[int, str]] = []
+    results: List[Tuple[int, str]] = []
+    others: List[Tuple[int, str]] = []
 
-  for reaction in msg.reactions:
-    try:
-      index = emojis_order.index(reaction.emoji)
+    for reaction in msg.reactions:
+      try:
+        index = emojis_order.index(reaction.emoji)
 
-      if index < len(options):
-        results.append((reaction.count - 1, options[index]))
-      else:
+        if index < len(options):
+          results.append((reaction.count - 1, options[index]))
+        else:
+          others.append((reaction.count, str(reaction)))
+      except ValueError:
         others.append((reaction.count, str(reaction)))
-    except ValueError:
-      others.append((reaction.count, str(reaction)))
-  
-  others.sort(reverse=True)
-  results.sort(reverse=True)
-  
-  wins = [results[0][1]]
-  max_count = results[0][0]
+    
+    others.sort(reverse=True)
+    results.sort(reverse=True)
+    
+    wins = [results[0][1]]
+    max_count = results[0][0]
 
-  for idx in range(1, len(results)):
-    if results[idx][0] == max_count:
-      wins.append(results[idx][1])
+    for idx in range(1, len(results)):
+      if results[idx][0] == max_count:
+        wins.append(results[idx][1])
+      else:
+        break
+    
+    wins.sort()
+
+    max_vote_msg = vote_str(max_count)
+    result_msg = f"results of {lines[0]}:\n"
+
+    if len(others) > 0 and others[0][0] > results[0][0]:
+      result_msg += dedent(f""""
+        Your options were crap so {others[0][1]} wins with **{others[0][0]}** votes
+        That being said, other results exist, so here is your actual poll:
+
+      """)
+
+    if len(wins) > 1:
+      joined_str = ", ".join(wins)
+      result_msg += f"**Tie between {joined_str}** ({max_count} {max_vote_msg} each)\n\n>>> "
     else:
-      break
-  
-  wins.sort()
+      result_msg += f"**{wins[0]}** wins! ({max_count} {max_vote_msg})\n\n>>> "
 
-  max_vote_msg = vote_str(max_count)
-  result_msg = f"results of {lines[0]}:\n"
+    for idx in range(len(wins), len(results)):
+      vote_msg = vote_str(results[idx][0])
+      result_msg += f"**{results[idx][1]}** ({results[idx][0]} {vote_msg})\n"
 
-  if len(others) > 0 and others[0][0] > results[0][0]:
-    result_msg += dedent(f""""
-      Your options were crap so {others[0][1]} wins with **{others[0][0]}** votes
-      That being said, other results exist, so here is your actual poll:
-
-    """)
-
-  if len(wins) > 1:
-    joined_str = ", ".join(wins)
-    result_msg += f"**Tie between {joined_str}** ({max_count} {max_vote_msg} each)\n\n>>> "
-  else:
-    result_msg += f"**{wins[0]}** wins! ({max_count} {max_vote_msg})\n\n>>> "
-
-  for idx in range(len(wins), len(results)):
-    vote_msg = vote_str(results[idx][0])
-    result_msg += f"**{results[idx][1]}** ({results[idx][0]} {vote_msg})\n"
-
-  await channel.send(result_msg)
+    await channel.send(result_msg)
+  except Exception as e:
+    print(e)
 
 class PollManager(CustomCog):
   def __init__(self, bot: Bot):

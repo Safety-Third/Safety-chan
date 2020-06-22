@@ -26,20 +26,23 @@ async def register_event(channel_id: int, event: str, time: str, \
     author_id (str): the id of the creator of this event (if a failure occurs)
     members (List[str]): a list of people who have signed up for this event. The creator is first in the list
   """
-  message = dedent(f"""
-  Time for **{event}**!
-  {" ".join(members)} 
-  """)
-  channel = bot.bot.get_channel(channel_id)
+  try:
+    message = dedent(f"""
+    Time for **{event}**!
+    {" ".join(members)} 
+    """)
+    channel = bot.bot.get_channel(channel_id)
 
-  if channel:
-    await channel.send(message)
-  else:
-    author = bot.bot.get_user(author_id)
+    if channel:
+      await channel.send(message)
+    else:
+      author = bot.bot.get_user(author_id)
 
-    if author:
-      error_msg = f"Failed to hold event {event}: the channel no longer exists"
-      await author.send(error_msg)
+      if author:
+        error_msg = f"Failed to hold event {event}: the channel no longer exists"
+        await author.send(error_msg)
+  except Exception as e:
+    print(e)
 
 class EventsManager(CustomCog):
   def __init__(self, bot: Bot):
