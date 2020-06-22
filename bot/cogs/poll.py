@@ -71,7 +71,7 @@ async def alert_author(author_id: str, topic: str, reason=""):
     topic (str): the topic of the original poll
     reason (str): additional error messages to pass on
   """
-  author = await bot.bot.get_user(author_id)
+  author = bot.bot.get_user(author_id)
   
   if author:
     await author.send(f"We could not deliver your poll on {topic}{reason}")
@@ -107,6 +107,7 @@ async def poll_result(author_id: str, channel_id: int, msg_id: int, topic: str):
   ]
 
   results: List[Tuple[int, str]] = []
+  others: List[Tuple[int, str]] = []
 
   for reaction in msg.reactions:
     try:
@@ -114,9 +115,12 @@ async def poll_result(author_id: str, channel_id: int, msg_id: int, topic: str):
 
       if index < len(options):
         results.append((reaction.count - 1, options[index]))
+      else:
+        others.append((reaction.count, str(reaction)))
     except ValueError:
-      pass
-
+      others.append((reaction.count, str(reaction)))
+  
+  others.sort(reverse=True)
   results.sort(reverse=True)
   
   wins = [results[0][1]]
@@ -132,6 +136,9 @@ async def poll_result(author_id: str, channel_id: int, msg_id: int, topic: str):
 
   max_vote_msg = vote_str(max_count)
   result_msg = f"results of {lines[0]}:\n"
+
+  if len(others) > 0 and others[0][0] > results[0][0]:
+    result_msg += f"Your options were crap so {others[0][1]} wins with {others[0][0]} votes\n"
 
   if len(wins) > 1:
     joined_str = ", ".join(wins)
