@@ -122,12 +122,12 @@ class EventsManager(CustomCog):
         raise ValueError(f"The job {event_id} does not exist")
 
       new_member = ctx.message.author.mention
-      author = job.args[3][0]
+      author = job.args[4][0]
       event = job.args[1]
       time = job.args[2]
 
-      if new_member not in job.args[3]:
-        members = job.args[3] + [new_member]
+      if new_member not in job.args[4]:
+        members = job.args[4] + [new_member]
         new_args = job.args[0:3] + (members,)
         job.modify(args=new_args)
         added = True

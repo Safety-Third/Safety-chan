@@ -27,15 +27,6 @@ discord_emojis = r'<a?:[a-zA-Z0-9\_]+:[0-9]+>'
 unicode_emojis = get_emoji_regexp()
 
 @bot.event
-async def on_ready():
-  """Sends a notice of startup to the user with id SAFETY_ADMIN_ID"""
-  admin_id = environ.get("SAFETY_ADMIN_ID")
-
-  if admin_id:
-    admin = await bot.fetch_user(int(admin_id))
-    await admin.send(f"I started up at {str(datetime.now())}")
-
-@bot.event
 async def on_message(message: Message):
   """
   Handles an incoming message. If the command starts with >, it is processed.
