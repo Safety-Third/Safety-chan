@@ -128,7 +128,7 @@ class EventsManager(CustomCog):
 
       if new_member not in job.args[4]:
         members = job.args[4] + [new_member]
-        new_args = job.args[0:3] + (members,)
+        new_args = job.args[0:4] + (members,)
         job.modify(args=new_args)
         added = True
     
