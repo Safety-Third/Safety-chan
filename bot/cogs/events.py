@@ -159,7 +159,7 @@ class EventsManager(CustomCog):
       if job:
         args = job.args
 
-        if args[3][0] == author:
+        if args[4][0] == author:
           try:
             scheduler.remove_job(event_id)
           except:
@@ -179,7 +179,7 @@ class EventsManager(CustomCog):
       else:
         msg = dedent(f"""
         {author} cancelled "**{args[1]}**" for {args[2]}
-        {" ".join(args[3])}
+        {" ".join(args[4])}
         """)
 
         await channel.send(msg)
